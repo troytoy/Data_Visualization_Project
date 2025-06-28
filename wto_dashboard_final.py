@@ -4,29 +4,30 @@ import pandas as pd
 import datetime
 import plotly.express as px
 
-# --- Config ---
+# --- Page config ---
 st.set_page_config(page_title="WTO Import Dashboard", layout="wide")
 
 # --- Header ---
-st.title("🌐 WTO Import Dashboard")
-st.markdown("Visualize merchandise import data from WTO API")
+st.title("WTO Import Dashboard")
+st.markdown("Visualize merchandise import data from the WTO API (2020–present)")
 
-# --- API Setup ---
-API_KEY = "228ffb618b6a448ab834a8cea045ae76"  # Replace with your own key if rate-limited
+# --- WTO API Setup ---
+API_KEY = "228ffb618b6a448ab834a8cea045ae76"  # Replace with your own if needed
 url = "https://api.wto.org/timeseries/v1/data"
 headers = {"Ocp-Apim-Subscription-Key": API_KEY}
 
-# --- Parameters ---
+# --- Year Range ---
 current_year = datetime.datetime.now().year
 years_range = list(range(2020, current_year + 1))
 
+# --- Country Options ---
 countries = {
     "China": "CN",
     "Germany": "DE",
     "United States": "US"
 }
 
-reporter = st.selectbox("Select Reporter Country", list(countries.keys()))
+reporter = st.sidebar.selectbox("Select a country", list(countries.keys()))
 reporter_code = countries[reporter]
 
 params = {
@@ -40,29 +41,30 @@ params = {
     "fmt": "json"
 }
 
-# --- Data Fetch ---
+# --- Fetch Data ---
 @st.cache_data
 def fetch_data():
     response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
-        data = response.json()["Dataset"]
+        data = response.json().get("Dataset", [])
         df = pd.DataFrame([{
             "Year": int(d["Year"]),
             "Value (Million USD)": d["Value"]
         } for d in data])
         return df
     else:
-        st.error("Failed to fetch data from WTO API")
         return pd.DataFrame()
 
 df = fetch_data()
 
-# --- Show Data ---
-st.subheader(f"📊 Merchandise Imports of {reporter} (2020-{current_year})")
-st.dataframe(df)
+# --- Display and Plot ---
+if df.empty:
+    st.warning("No data found for this selection. Please try another country or check API.")
+else:
+    st.subheader(f" Import Value of {reporter} (2020–{current_year})")
+    st.dataframe(df)
 
-# --- Plot ---
-fig = px.bar(df, x="Year", y="Value (Million USD)",
-             title=f"Import Value of {reporter} by Year",
-             text_auto=True)
-st.plotly_chart(fig, use_container_width=True)
+    fig = px.bar(df, x="Year", y="Value (Million USD)",
+                 title=f"Import Value of {reporter} by Year",
+                 text_auto=True)
+    st.plotly_chart(fig, use_container_width=True)
