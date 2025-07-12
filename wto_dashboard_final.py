@@ -98,22 +98,36 @@ question = st.sidebar.radio(
 
 if not df_latest.empty:
     # --- Q1 ---
-    if question == "Q1: Highest Total Import Value":
+ if question == "Q1: Highest Total Import Value":
         st.header(f"Q1: Which country had the highest total import value in {latest_year}?")
         total_imports = df_latest[df_latest['ProductOrSector'] == 'Total merchandise'].sort_values('Value', ascending=False)
+
         if not total_imports.empty:
-            fig = px.bar(total_imports,
-                         x='ReportingEconomy',
-                         y='Value',
-                         text_auto='.2s',
-                         color='ReportingEconomy',
-                         labels={'Value': 'Import Value (Million USD)', 'ReportingEconomy': 'Country'},
-                         title=f'<b>Total Merchandise Imports by Country ({latest_year})</b>')
-            fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+            fig = px.choropleth(
+                total_imports,
+                locations='ReportingEconomy',      # Column for country names
+                locationmode='country names',      # Specifies that 'locations' are country names
+                color='Value',                     # Column to determine color intensity
+                hover_name='ReportingEconomy',     # Text to display on hover
+                color_continuous_scale='Plasma',   # Color scale for the map (changed to Plasma for desired look)
+                labels={'Value': 'Import Value (Million USD)'}, # Label for the color bar
+                title=f'<b>Total Merchandise Imports by Country ({latest_year})</b>' # Map title
+            )
+
+            # Update map layout for better presentation
+            fig.update_layout(
+                geo=dict(
+                    showframe=False,       # Do not show frame around the map
+                    showcoastlines=True    # Show coastlines
+                ),
+                coloraxis_colorbar=dict(title='Million USD'), # Title for the color bar
+                title_x=0.5 # Center the main title of the plot
+            )
+
             st.plotly_chart(fig, use_container_width=True)
-            st.info("**Insight:** The chart clearly shows which country was the largest importer of goods in the latest available year.")
+            st.info("**Insight:** The map clearly shows which countries were the largest importers of goods in the latest available year, highlighting geographical patterns.")
         else:
-            st.warning("No data for 'Total merchandise' available for Q1.")
+            st.warning("No data for 'Total merchandise' available for this question in the latest year.")
 
     # --- Q2 ---
     elif question == "Q2: Top 5 Imported Product Groups":
